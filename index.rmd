@@ -1,0 +1,518 @@
+---
+title: European Suicide Rates - The Role of Gender and Mental Health Investment
+date: "`r Sys.Date()`"
+author: 210155338
+output:
+  
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+## **Data Origins**   
+
+This dataset contains **Global Suicide Rates** from 184 countries over the course of 20 years (2000-2019). These statistics were collected by the World Health Organisation (World Health Organisation, 2021). 
+
+This data was retrieved through this  [link](https://www.kaggle.com/datasets/nourajo/suicide-rates-worldwide-20002019). 
+
+
+*It is important to note that these statistics are the most current and up-to-date collation of Global Suicide Rates by the World Health Organisation as the COVID-19 pandemic has provided unprecedented circumstances and thus has prevented collection of data since the pandemic began in 2019.*
+
+
+![](Images/who.jpg)
+
+
+> **What is the World Health Organisation?**   
+
+The [World Health Organisation](https://www.who.int/) is an agency within the United Nations who is responsible for global public health. The WHO collects data worldwide to track progress, analyse population-based information and monitor specific government interventions which may promote public health. This data aims to be utilised to inform prevention and management programs for different public health threats including physiological and psychological illnesses. 
+
+*** 
+## **Current Study**   
+
+### **Aims**
+
+**Aim 1**: To visualise the difference in suicide rates between countries with the *highest* proportional GDP investment into mental health versus the countries who have the *lowest* proportional GDP invesment into mental health in Europe.
+
+**Aim 2**: To visualise how suicide rates have changed *over time* (between the years 2000 and 2019) across these countries.
+
+**Aim 3**: To visualise the trends in *male and female suicide rates* in these countries over this 20 year period. 
+
+
+### **Background Research**
+
+Globally, the suicide rate for men is double the suicide rate of women (World Health Organisation, 2014). Across Europe, suicide rates for men are steadily increasing whilst female suicide rates are decreasing according to the *Global Burden of Disease Study* conducted by the Institute for Health Metrics and Evaluation (2021). It is thought that men are currently more at risk of suicide than women (Kessler *et al*., 2008). Therefore, this project aims to investigate and visualise this relationship. 
+
+Additionally, European countries have varying amounts of investment into Mental Health, with some countries (such as Denmark and Finland) funding and providing easy to access mental health care (OECD, 2015). However, across Eastern Europe, the problem of mental illness is largely ignored, with greater attention and investment required to advance the mental health of the nations (Hook & Bogdanov, 2021). This project aims to visualise the consequences of this lack of investment into mental health and compare and contrast the suicide rates of countries who readily invest into mental health infrastructure and countries who do not prioritise mental health investment. Moreover, suicide rates have risen by 20,000 in just three decades - between 1990 and 2019 (The British Medical Journal, 2021). This project will visualise part of this steep increase by documenting the trends between 2000 and 2019. 
+
+
+***
+### **Research Questions**:  
+1. How does level of mental health investment influence male and female suicide rates in  European countries?
+
+2. How does gender influence European suicide rates?
+
+3. How have male and female suicide rates changed over 20 years (2000-2019)?
+
+*** 
+
+## Importing the Dataset 
+```{r warning = FALSE, message=FALSE, echo=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#opening all the libraries which will be used throughout this visualisation project
+library(tidyverse)
+library(here)
+library(ggplot2)
+library(gganimate)
+library(tidyr)
+library(plotly)
+library(cowplot)
+library(ggpubr)
+library(dplyr)
+library(magick)
+library(gridExtra)
+
+#importing the data from the subfolder 'data' in the working directory
+suicidedata <- read.csv(here("data", "WHOsuicidedata(1).csv"))
+head(suicidedata)
+
+```
+
+
+## **Data Preparation**  
+
+As you can see, this dataframe is not user friendly, the long titles make it near impossible to read. Therefore, prior to any manipulation, I decided to rename the columns within the data frame. 
+
+```{r warning = FALSE, message=FALSE, echo=TRUE}
+#renaming the columns to more summarised names to make the remaining wrangling and later plotting of the variables more straightforward
+suicidedata<- rename(suicidedata, Country = data, Year = X, BothSexesNatural = X.1, MaleNatural = X.2, FemaleNatural = X.3, BothSexesSuicide = X.4, MaleSuicide = X.5, FemaleSuicide = X.6)
+```
+
+It was then necessary to make some alterations to the dataset to prepare it for the visualisation. This included eliminating irrelevant rows, creating new required columns and deleting irrelevant columns for these specific visualisations. It is also important to ensure that the new column title *'suiciderate'* was in the correct format to allow it to be plotted as one of the variables. 
+
+``` {r warning = FALSE, message=FALSE, echo=TRUE}
+ 
+#this removes the first two lines of the tibble as it does not provide any relevant information or data not already provided by the titles
+df <- suicidedata %>%slice(-c(1:2))
+
+#this creates two new columns that splits the suicide rates into male and female to allow for comparison and visualisation
+df <- gather(df, gender, suiciderate, 'MaleSuicide':'FemaleSuicide')
+
+#using the subset function to delete columns that will not be utilised in this visualisation 
+mydata = subset(df, select = -c(BothSexesNatural, MaleNatural, FemaleNatural,BothSexesSuicide))
+head(mydata)
+
+#this ensures that the new column created is a numeric and thus can be used as a continuous variable within the barplots below.
+df$suiciderate <- as.numeric(as.character(df$suiciderate))
+```
+***
+## **Codebook**   
+
+The table below outlines the variables from the dataset that will be used in the following visualisation. These titles are the ones which I have just renamed in the Data Preparation section of this project. There is an accompanying explanation for what each variable is.  
+
+Variable Title | Variable Explanation 
+-------------- | ----------------------
+Country | The name of the country
+Year | The year that the suicide rates were collected
+Gender| Whether the suicide rates are associated with men or women
+Suidice Rate | The suicide mortality rate (per 100,000 population)
+lowGDP | A dataset that displays the suicide mortality rate per gender of the five countries identified below as having the lowest mental health investment in Europe
+highGDP | A dataset that displays the suicide mortality rate per gender of the five countries identified below as having the high mental health investment in Europe
+highGDP2019 | A dataset that displays the suicide mortality rate per gender in 2019 of the five countries identified below as having the highest mental health investment in Europe
+lowGDP2019 | A dataset that displays the suicide mortality rate per gender in 2019 of the five countries identified below as having the lowest mental health investment in Europe 
+highGDP2000 |A datsaet that displays the suicide mortality rate per gender in 2000 of the five countries identified below as having the highest mental health investment in Europe 
+lowGDP2000 | A dataset that displays the suicide mortality rate per gender in 2000 of the five countries identified below as having the lowest mental health investment in Europe 
+
+***
+
+### **Data Preparation: Identifying the Countries of Interest**
+
+
+![](Images/OECD.png)
+
+As the first aim of this visualisation is to compare the countries with the highest and lowest proportional GDP investment into mental health. The next step is to identify and then isolate these countries within the dataset. The *Organisation for Economic Co-operation and Development (2015)* [(The OECD)](https://www.oecd.org/unitedkingdom/) examined mental health expenditure across Europe with the aim to improve policies to improve lives. Consequently, they identified:
+
+Highest Proportional GDP Investment in Mental Health | Lowest Proportional GDP Investment in Mental Health
+---------------------------------------------------- | ----------------------------------------------------
+Denmark (5.4%) | Lithuania (2.6%)
+Finland (5.3%) | Slovakia (2.6%)
+Belgium (5.1%) | Czechia (2.5%)
+Netherlands (5.1%) | Bulgaria (2.4%)
+Norway (5.0%) | Romania (2.1%)
+
+Therefore, these are the ten countries of interest for this projects visualisations. To do this, the dataframe must be altered to display male and female suicide rates from these ten countries only. After this, the dataframe must be split into two smaller dataframes: one for the high GDP investment countries and one for the low GDP investment countries.
+
+``` {r warning = FALSE, message=FALSE, echo=TRUE}
+#this creates a new dataset with only the columns and rows relevant for the visualisation - the row selection is first, followed by the column selection
+data<- df[c(301:320, 921:940, 1161:1180, 2301:2320, 2401:2420, 3961:3980, 4581:4600, 4821:4840, 5961:5980, 6061:6080, 481:500, 861:880, 1921:1940, 2681:2700, 2941:2960, 4141:4160, 4521:4540, 5581:5600, 6341:6360, 6601:6620), c(1:2, 7:8)] 
+head(data)
+
+#creates the dataset with the top five countries with the highest proportional GDP investment into mental health 
+highGDP <- data%>%filter(Country %in% c('Belgium','Denmark','Finland','Netherlands','Norway'))
+head(highGDP)
+
+#creates the dataset with the lowest five countries with the highest proportional GDP investment into mental health
+lowGDP <- data%>%filter(Country %in%c('Bulgaria','Czechia','Lithuania','Romania','Slovakia'))
+head(lowGDP)
+``` 
+
+These two dataframes will come into use later with the **animated plot**. However, in order to produce the static plots first we must refine the datasets to display one year at at time. For comparison four plots will be produced:  
+1. Suicide Rates in High Mental Health Investment Countries in 2019  
+2. Suicide Rates in Low Mental Health Investment Countries in 2019  
+3. Suicide Rates in High Mental Health Investment Countries in 2000  
+4. Suicide Rates in Low Mental Health Investment Countries in 2000  
+
+Therefore, the final refining of the datasets occurs below.
+
+```{r warning = FALSE, message=FALSE, echo=TRUE}
+
+#filtering the data to only display the rates in the years chosen 
+highGDP2019 = highGDP%>%filter(Year == 2019)
+
+lowGDP2019 = lowGDP%>%filter(Year == 2019)
+
+highGDP2000 = highGDP%>%filter(Year == 2000)
+
+lowGDP2000 = lowGDP%>%filter(Year == 2000)
+view(lowGDP2000)
+```
+
+***
+*N.B. Developing a Colour Blind Paletter for the Plots to utilise prior to creating the plot*
+``` {r warning = FALSE, message=FALSE, echo=TRUE}
+#creates a colour-blind friendly palette for the bar plots
+cbbPalette <- c( "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+```
+
+*** 
+### **Visualisation 1: Male and Female Suicide Rates in European Countries with High Mental Health Investment (2019)**
+
+``` {r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+#this plots the first barchart displaying gender differences in suicide rates in the European Countries with the highest proportional GDP investment in mental health in 2019 - the most recent data collected
+fig_1 <- ggplot(data = highGDP2019, aes(x= Country, y= suiciderate, fill=gender)) +
+  
+  #creating the barplot, using stat="identity" allows R to know I am entering the Y values, and that R does not need to calculate them itself and 'dodge' prevents the bars from overlapping
+ geom_bar(stat = 'identity', position = 'dodge', width = 0.75) +
+  
+    #coord_flip() swaps the x and y axes around so the barplot presents horizontally rather than vertically
+  coord_flip()  +
+  
+    #this theme was chosen for aesthetics as it provided the best contrast against the colourblind palette of the bars
+  theme_classic() +
+  
+  #this applies the colourblind palette to the first barplot 
+  scale_fill_manual(values=cbbPalette) +
+  
+  #in order for direct comparison between the  graphs, the scales must be the same - this function dictates where the x axis originates and finishes and by what scale it increases by, this was selected for consistency between conditions and this function can be used in unison with coord_flip() argument
+  scale_y_continuous(breaks = seq(from = 0, to = 90, by = 10), limits = c(0,90)) + 
+  
+  #adds labels to the x and y axes, provides a title for the first plot, and the 'fill = ' command indicates for the bars to have different colours to represent Male and Female 
+  labs(y = 'Suicide Rates (per 100,000 population)', x = 'Country', title = 'High Mental Health Investment', caption = '2019', fill = 'Gender') +
+  
+  #this is for aesthetic modification of the graph, changing the size of the font for both the caption and the subtitle, emboldening it and the command 'hjust' aligns the title horizontally, 0.25 was selected so it was aligned to the left.
+  theme(plot.title = element_text(size = 12, face = "italic", hjust= 0.25), plot.caption = element_text(size = 12))
+
+plot(fig_1)
+
+#saving the plots in the figure subfolder of the working directory 
+ggsave(here('Figs/fig_1.png'))
+
+```
+
+##### **Interpretation**
+
+This barplot displays the differences in male and female suicides for the five countries with the *largest* proportional investment into mental health. This data is the most recent collected (2019).  This displays how, as expected, male suicide rates are consistently approximately double that of female suicide rates. This is true even for the European countries with high investment into mental health. There is little variance between these countries, suggesting that investing ~5% of GDP keeps female suicide rates low, however, more must be done to tackle male suicide risk.
+
+
+### **Visualisation 2: Male and Female Suicide Rates in European Countries with Low Mental Health Investment (2019)**
+
+``` {r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+#this plots the second barchart displaying gender differences in suicide rates in the European Countries with the lowest proportional GDP investment in mental health in 2019 - the most recent data collected
+fig_2 <- ggplot(data = lowGDP2019, aes(x=Country, y=suiciderate, fill=gender)) + 
+  
+    #creating the barplot, using stat="identity" allows R to know I am entering the Y values, and that R does not need to calculate them itself and 'dodge' prevents the bars from overlapping
+  geom_bar(stat = 'identity', position = 'dodge', width = 0.75) +
+  
+  #coord_flip() swaps the x and y axes around so the barplot presents horizontally rather than vertically
+  coord_flip() + 
+  
+  #this theme was chosen for aesthetics as it provided the best contrast against the colourblind palette of the bars
+  theme_classic() + 
+  
+  #this applies the colourblind palette to the barplot 
+  scale_fill_manual(values=cbbPalette) + 
+  
+  #in order for direct comparison between the  graphs, the scales must be the same - this function dictates where the x axis originates and finishes and by what scale it increases by, this was selected for consistency between conditions and this function can be used in unison with coord_flip() argument
+  scale_y_continuous(breaks = seq(from = 0, to = 90, by = 10), limits = c(0,90)) + 
+  
+  #adds labels to the x and y axes, provides a title for the first plot, and the 'fill = ' command indicates for the bars to have different colours to represent Male and Female 
+  labs(y = 'Suicide Rates (per 100,000 population)', x = 'Country', title = 'Low Mental Health Investment', caption = '2019', fill = 'Gender') + 
+  
+  #this is for aesthetic modification of the graph, changing the size of the font for both the caption and the subtitle, emboldening it and the command 'hjust' aligns the title horizontally, 0.25 was selected so it was aligned to the left. 
+  theme(plot.title = element_text(size = 12, face = "italic", hjust= 0.25), plot.caption = element_text(size = 12))
+
+plot(fig_2)
+
+#saving the plots in the figure subfolder of the working directory 
+ggsave(here('Figs/fig_2.png'))
+
+``` 
+
+##### **Interpretation**
+
+This visualises the stark differences between male and female suicide rates in the five countries with the *lowest* mental health investment in 2019. It is interesting to note how low the female suicide rates are in these countries. In four of five countries, the female suicide risk is lower than 10 per 100,000. This is important to highlight as these countries are successful in keeping the female suicide rates low. 
+
+
+The gender differences are clear to see in all five countries, however, it is most pertinent in Lithuania. This is an interesting visualisation as Lithuania had the joint *highest* proportional GDP investment (2.6%) out of the five lowest countries. This is interesting as it indicates that male mental health needs are not being met in Lithuania and as such, the focus must shift to meet this risk in this country. Female suicide rates are also larger in Lithuania than in the comparison countries, therefore, research should focus on Lithuania to investigate the reasons for the higher suicide rates. 
+
+### **Visualisation 3: Male and Female Suicide Rates in European Countries with High Mental Health Investment (2000)**
+```{r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+#this plots the third barchart displaying gender differences in suicide rates in the European Countries with the highest proportional GDP investment in mental health in 2000 - the oldest  data collected
+fig_3 <- ggplot(data = highGDP2000, aes(x= Country, y= suiciderate, fill=gender)) +
+  
+  #creating the barplot, using stat="identity" allows R to know I am entering the Y values, and that R does not need to calculate them itself and 'dodge' prevents the bars from overlapping
+  geom_bar(stat = 'identity', position = 'dodge', width = 0.75) +
+  
+    #coord_flip() swaps the x and y axes around so the barplot presents horizontally rather than vertically
+  coord_flip()  +
+  
+    #this theme was chosen for aesthetics as it provided the best contrast against the colourblind palette of the bars
+  theme_classic() +
+  
+    #this applies the colourblind palette to the third barplot
+  scale_fill_manual(values=cbbPalette) +
+  
+  #in order for direct comparison between the graphs, the scales must be the same - this function dictates where the x axis originates and finishes and by what scale it increases by, this was selected for consistency between conditions and this function can be used in unison with coord_flip() argument
+  scale_y_continuous(breaks = seq(from = 0, to = 90, by = 10), limits = c(0,90)) + 
+  
+  #adds labels to the x and y axes, provides a title for the third plot, and the 'fill = ' command indicates for the bars to have different colours to represent Male and Female 
+  labs(y = 'Suicide Rates (per 100,000 population)', x = 'Country', title = 'High Mental Health Investment', caption = '2000', fill = 'Gender') +
+  
+  #this is for aesthetic modification of the graph, changing the size of the font for both the caption and the subtitle, emboldening it and the command 'hjust' aligns the title horizontally, 0.25 was selected so it was aligned to the left.
+  theme(plot.title = element_text(size = 12, face = "italic", hjust= 0.25), plot.caption = element_text(size = 12))
+
+plot(fig_3) 
+
+#saving the plots in the figure subfolder of the working directory 
+ggsave(here('Figs/fig_3.png'))
+
+```
+
+##### **Interpretation**
+
+This graph highlights how this gender difference in suicide rates has been present for over 20 years. Moreover, this graph indicates that despite global suicide rates for men and women decreasing, men have been at double the risk of suicide than women dating back to at least 2000. This implies that despite investment into mental health, the gender gap is not being addressed. 
+
+
+### **Visualisation 4: Male and Female Suicide Rates in European Countries with Low Mental Health Investment (2000)**
+```{r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+
+#this plots the fourth barchart displaying gender differences in suicide rates in the European Countries with the lowest proportional GDP investment in mental health in 2000 - the most recent data collected
+fig_4 <- ggplot(data = lowGDP2000, aes(x=Country, y=suiciderate, fill=gender)) + 
+  
+      #creating the barplot, using stat="identity" allows R to know I am entering the Y values, and that R does not need to calculate them itself and 'dodge' prevents the bars from overlapping
+  geom_bar(stat = 'identity', position = 'dodge', width = 0.75) +
+  
+  #coord_flip() swaps the x and y axes around so the barplot presents horizontally rather than vertically
+  coord_flip() + 
+  
+  #this theme was chosen for aesthetics as it provided the best contrast against the colourblind palette of the bars
+  theme_classic() + 
+  
+  #this applies the colourblind palette to the fourth barplot 
+  scale_fill_manual(values=cbbPalette) + 
+  
+  #in order for direct comparison between the  graphs, the scales must be the same - this function dictates where the x axis originates and finishes and by what scale it increases by, this was selected for consistency between conditions and this function can be used in unison with coord_flip() argument
+  scale_y_continuous(breaks = seq(from = 0, to = 90, by = 10), limits = c(0,90)) + 
+
+  #adds labels to the x and y axes, provides a title for the first plot, and the 'fill = ' command indicates for the bars to have different colours to represent Male and Female 
+  labs(y = 'Suicide Rates (per 100,000 population)', x = 'Country', title = 'Low Mental Health Investment ', caption = '2000', fill = 'Gender') + 
+  
+  #this is for aesthetic modification of the graph, changing the size of the font for both the caption and the subtitle, emboldening it and the command 'hjust' aligns the title horizontally, 0.25 was selected so it was aligned to the left.
+  theme(plot.title = element_text(size = 12, face = "italic", hjust= 0.25), plot.caption = element_text(size = 12))
+
+plot(fig_4)
+
+#saving the plots in the figure subfolder of the working directory 
+ggsave(here('Figs/fig_4.png'))
+
+``` 
+
+##### **Interpretation**
+
+This visualisation displays the clearest gender differences in suicide rates in European countries. Across the five lowest investment countries, the suicide risk was at least three times larger for men than women in 2000. Again, female suicide rates remain consistently low in four of the five countries and thus it can be extrapolated that female suicide rates have remained low in these countries over this twenty year period. 
+
+Again, this graph displays how men in Lithuania are at the highest risk of suicide across the countries displayed. This indicates a *systemic* problem of male mental health throughout Lithuania that has been present since 2000 and has not been addressed.  
+
+### **Comparing The Visualisations for the Final Static Visualisation** 
+
+```{r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center', fig.height= 10, fig.width= 10}
+ #this removes the legend from the first and third graphs so only it is displayed on the final visualisation on the right handside
+fig_1a <- fig_1 + theme(legend.position = "none") 
+
+fig_3a <- fig_3 +theme(legend.position = "none")
+
+#this sets the main title and edits the size puts the title in bold.
+title1 = text_grob("Gender Differences in Suicide Rates in European Countries in 2000 vs 2019", size = 15, face = "bold") 
+
+#this utilises the "ggpubr" and "dplyr" package to allow for one caption to be added to both graphs, and an overall title above the two individual subtitles for each plot.
+plot <- grid.arrange(fig_3a, fig_4, fig_1a, fig_2, nrow = 2, top = title1, bottom = "Source: World Health Organisation (2015)")
+
+#saving the plots in the figure subfolder of the working directory 
+ggsave(here('Figs/plot.png'))
+
+``` 
+
+##### **Interpretation**
+
+By combining the four visualisations it allows a direct comparison between the conditions of interest. This visualisation displays how global suicide rates have declined between 2000-2019. These plots display how female suicide rates appear to be lower in the countries with low mental health investment compared to countries with high mental health investment. This appears to be true for both 2000 and 2019. This suggests that the level of investment appears irrelevant when addressing female suicide risk, it potentially indicates that how you invest into mental health may be more pertinent. Therefore, further research should investigate the infrastructure, legislation and support available in these countries as it appears to be keeping female suicides low.
+
+Furthermore, male suicides are higher than female suicides in every country, in each year and appear to be relatively consistent in all graphs, where the male suicides are roughly double the females, with the exception of the 2000 low investment where they are roughly triple. This is indicative of a systemic problem with how male mental health needs are being addressed. This visualisation suggests that the infrastructure in place is working in decreasing suicides but is not addressing the gender imbalance in suicide risk. As such, more must be done to tackle male mental health problems throughout Europe.
+
+
+***
+
+# **Animation Visualisation** 
+
+
+### **Displaying Changes in Male and Female Suicide Rates in European Countries with High and Low Mental Health Investment from 2000 to 2019** 
+
+```{r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+#this creates the animated barplot which cycles through the GDP data of the high investment countries in 2000 to 2019, so it can display the gender differences in suicide rates
+anim <- ggplot(data = highGDP, aes(x= Country, y= suiciderate, fill=gender)) +
+  
+  #creating the barplot, using stat="identity" allows R to know I am entering the Y values, and that R does not need to calculate them itself and 'dodge' prevents the bars from overlapping
+ geom_bar(stat = 'identity', position = 'dodge', width = 0.75) +
+  
+    #coord_flip() swaps the x and y axes around so the barplot presents horizontally rather than vertically
+  coord_flip()  +
+  
+  #this theme was chosen for aesthetics as it provided the best contrast against the colourblind palette of the bars
+  theme_classic() +
+    
+  #this applies the colourblind palette to the barplot
+  scale_fill_manual(values=cbbPalette) +
+  
+  #in order for direct comparison between the graphs, the scales must be the same - this function dictates where the x axis originates and finishes and by what scale it increases by, this was selected for consistency between conditions and this function can be used in unison with coord_flip() argument
+  scale_y_continuous(breaks = seq(from = 0, to = 90, by = 5), limits = c(0,90)) + 
+  
+  #adds labels to the x and y axes, provides a title for the animated plot adding the "Year: = }next_state}"command to display the changing year, and the 'fill = ' command indicates for the bars to have different colours to represent Male and Female 
+  labs(y = 'Suicide Rates (per 100,000 population)', x = 'Country', title = 'High Mental Health Investment: Year: {next_state}', fill = 'Gender') +
+  
+   #this is for aesthetic modification of the graph, changing the size of the font for both the caption and the title, emboldening it and the command 'hjust' aligns the title horizontally, 0.25 was selected so it was aligned to the left.
+  theme(plot.title = element_text(size = 12, face = "italic", hjust= 0.25), plot.caption = element_text(size = 12)) + 
+  
+  #this removes the legend from the first graph so only one is displayed on the final visualisation
+  theme(legend.position = "none") +
+  
+  #this is the animation command so the bars know at what speed to move and know when to transition into the next year
+  transition_states(Year, transition_length = 1, state_length = 1)
+                    
+#this produces the animated graph
+anim
+
+#this saves the animated graph titled 'anim', it is required to save in order to be read and inserted into the final comparative animatied visualisation.
+anim_save("anim", fps=1, animation = last_animation())
+  
+``` 
+
+##### **Interpretation**
+
+This animated plot displays gender differences in suicide rates between the years 2000 and 2019 in European countries with high mental health investment. It highlights how after an initial decrease in the early 2000’s for both male and female suicides, the rates have remained relatively consistent throughout the 2000’s and the 2010’s. Throughout the 20 years, male suicides have remained consistently higher than women’s in all five countries. This graph does illustrate the global decrease in suicide rates for both men and women as previous research suggested. However, it further emphasises how men have been more at risk of suicide than women for over 20 years and this discrepancy is not being addressed by current mental health care offered. 
+
+### **Displaying Changes in Male and Female Suicide Rates in European Countries with Low Mental Health Investment from 2000 to 2019* *
+
+```{r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+#this creates the animated barplot which cycles through the GDP data of the low investment countries in 2000 to 2019, so it can display the gender differences in suicide rates
+anim2 <- ggplot(data = lowGDP, aes(x= Country, y= suiciderate, fill=gender)) +
+  
+  #creating the barplot, using stat="identity" allows R to know I am entering the Y values, and that R does not need to calculate them itself and 'dodge' prevents the bars from overlapping
+ geom_bar(stat = 'identity', position = 'dodge', width = 0.75) +
+    
+  #coord_flip() swaps the x and y axes around so the barplot presents horizontally rather than vertically
+  coord_flip()  +
+   
+   #this theme was chosen for aesthetics as it provided the best contrast against the colourblind palette of the bars
+  theme_classic() +
+    
+  #this applies the colourblind palette to the plot
+  scale_fill_manual(values=cbbPalette) +
+  
+  #in order for direct comparison between the two graphs, the scales must be the same - this function dictates where the x axis originates and finishes and by what scale it increases by, this was selected for consistency between conditions and this function can be used in unison with coord_flip() argument
+  scale_y_continuous(breaks = seq(from = 0, to = 90, by = 5), limits = c(0,90)) + 
+  
+  #adds labels to the x and y axes, provides a title for the first plot adding the 'next_state' command to display the changing year, and the 'fill = ' command indicates for the bars to have different colours to represent Male and Female 
+  labs(y = 'Suicide Rates (per 100,000 population)', x = 'Country', title = 'Low Mental Health Investment: Year: {next_state}', fill = 'Gender') +
+  
+  #this is for aesthetic modification of the graph, changing the size of the font for both the caption and the title, emboldening it and the command 'hjust' aligns the title horizontally, 0.25 was selected so it was aligned to the left.
+  theme(plot.title = element_text(size = 12, face = "italic", hjust= 0.25), plot.caption = element_text(size = 12)) +
+
+  #this is the animation command so the bars know at what speed to move and know when to transition into the next year
+  transition_states(Year, transition_length = 1, state_length = 1)
+
+#this produces the animated graph
+anim2 
+
+#this saves the animated graph titled 'anim2', it is required to save in order to be read and inserted into the final comparative animatied visualisation.
+anim_save("anim2", fps =1, animation = last_animation())
+
+```
+
+##### **Interpretation**
+
+For the majority of countries in the low mental health investment category, the suicide rates for both male and female have remained relatively consistent throughout this 20-year period. However, global suicide rates have been significantly decreasing between 2000 and 2019. This implies that investment in mental health is required to ensure that suicide rates are decreasing in line with global rates.  
+
+Additionally, since 2016 there has been a significant decrease in male suicide rates in Lithuania, prior to this the rates were relatively consistent. Although Lithuania’s male suicide rates are still significantly larger than the comparative rates, it implies that they may be beginning to tackle this epidemic.
+
+### **Comparing The Animated Visualisations** 
+
+```{r warning = FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+#this views the previously saved animations as images so that they can be uploaded side-by-side for the final visualisation
+a_mgif <- image_read("anim")
+b_mgif <- image_read("anim2")
+
+#this vector is assigned the two barplot animations that have been combined as one final image
+new_gif <- image_append(c(a_mgif[1], b_mgif[1]))
+
+#this loop runs through the twenty years (2000 to 2019) for both of the graphs to display the changes in suicide rates over the years in the selected countries hence why its out of 40 frames.
+for(i in 1:40){
+  combined <- image_append(c(a_mgif[i], b_mgif[i]))
+  new_gif <- c(new_gif, combined)
+}
+
+new_gif
+``` 
+
+##### **Interpretation**
+
+By placing these two visualisations side by side, it displays the stark contrasts between the two conditions. The direct comparison allows for patterns over time to be analysed and evaluated. The high mental health investment condition displays more consistent decreases over time than low mental health investment. Interestingly, it highlights how in the lower mental health investment visualisation, the female suicide rates appear lower in almost every country than in the high mental health condition. Therefore, if countries with low mental health investment can reduce female suicide rates this much, funding could be spent more wisely in high investment countries to match these levels. Therefore, further investigation into how the funding is spent would provide a new lens to interpret these visualisations. 
+
+# **Summary and Directions for Future Research**
+The visualisations display the stark gender differences in suicide rates across Europe. The suicide rate for males is double that of females. This relationship was consistently identified across all the countries of investigation in this project. This indicates that further research needs to be conducted to investigate why this discrepancy exists.
+
+Furthermore, an unexpected finding suggests female suicide rates appear to be lower in countries with lower mental health investment compared to countries with high mental health investment. Therefore, further research should be conducted to see how female mental health is promoted in these countries. By identifying successful interventions or techniques that are low cost, it may allow other countries to implement them to reduce the suicide rate of females within their country. This would free up funding, allowing them to reinvest this money to investigate and tackle the male mental health epidemic that is occurring globally. Therefore, further studies should investigate what infrastructure, prevention techniques and treatment programs are offered in each of these countries to identify commonalities in countries with lower suicide rates. 
+
+A country with particularly interesting findings is Lithuania as the suicide rates were considerably larger than all other countries within this visualisation. Future research could identify potential reasons and causes for these findings which would not only provide an explanation but could provide a basis for interventions to be implemented to reduce the suicide risk of both males and females in Lithuania. 
+
+It is also important to note, that some countries may simply have individuals who are less prone to mental illness. Therefore, future studies should incorporate mental illness prevalence rates into their research as this is a potential confound variable which was not considered in this project. 
+
+## **References**  
+
+World Health Organization (2014). Preventing Suicide: A Global Imperative. World Health Organization.  
+
+Global Burden of Disease Collaborative Network. Global Burden of Disease Study 2019 (GBD 2019) Results. Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2021.  
+
+Kessler RC, Heeringa S, Lakoma MD, Petukhova M, Rupp AE, Schoenbaum M, et al. Individual and societal effects of mental disorders on earnings in the United States: results from the national comorbidity survey replication. Am J Psychiatry 2008; 165: 703–11.  
+ 
+Organisation for Economic Co-operation and Development (2015). How Much Does Mental Health Cost Europe? Mental Health as a Percentage of GDP in Europe. Accessed [21.03.2022].   
+
+Hook, K., & Bogdanov, S.  (2021). Mental health care in Eastern Europe and Central Asia: An Analysis of needs and a call for greater investment. The Lancet Regional Health 1(100182)
+
+The British Medical Journal (2021). Suicide deaths have risen by 20,000 over past 30 years around the world. Accessed [24.04.2022].   
+
